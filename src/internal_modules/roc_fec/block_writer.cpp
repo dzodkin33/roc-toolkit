@@ -196,8 +196,9 @@ status::StatusCode BlockWriter::end_block_() {
         return code;
     }
 
-    block_encoder_.end_block();
-
+    if ((code = block_encoder_.end_block()) != status::StatusOK) {
+        return code;
+    }
     return status::StatusOK;
 }
 
@@ -226,11 +227,16 @@ bool BlockWriter::apply_sizes_(size_t sblen, size_t rblen, size_t payload_size) 
 }
 
 status::StatusCode BlockWriter::write_source_packet_(const packet::PacketPtr& pp) {
-    block_encoder_.set_buffer(cur_packet_, pp->fec()->payload);
+    status::StatusCode status = block_encoder_.set_buffer(cur_packet_, pp->fec()->payload);
+
+    if (status != status::StatusOK) {
+        roc_log(LogError, "fec block writer: can't set buffer");
+        return status;
+    }
 
     fill_packet_fec_fields_(pp, (packet::seqnum_t)cur_packet_);
 
-    status::StatusCode status = source_composer_.compose(*pp);
+    status = source_composer_.compose(*pp);
     if (status != status::StatusOK) {
         roc_log(LogError, "fec block writer: can't compose packet");
         return status;
@@ -298,10 +304,20 @@ status::StatusCode BlockWriter::encode_repair_packets_() {
         if (!rp) {
             continue;
         }
-        block_encoder_.set_buffer(cur_sblen_ + i, rp->fec()->payload);
+        status::StatusCode status = block_encoder_.set_buffer(cur_sblen_ + i, rp->fec()->payload);
+
+        if (status != status::StatusOK) {
+            roc_log(LogError, "fec block writer: can't set packet");
+            return status;
+        }
     }
 
-    block_encoder_.fill_buffers();
+    status::StatusCode status = block_encoder_.fill_buffers();
+
+    if (status != status::StatusOK) {
+        roc_log(LogError, "fec block writer: can't encode packet");
+        return status;
+    }
 
     return status::StatusOK;
 }

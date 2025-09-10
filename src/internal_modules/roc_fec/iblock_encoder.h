@@ -49,18 +49,21 @@ public:
     //! Store source or repair packet buffer for current block.
     //! @pre
     //!  This method may be called only between begin_block() and end_block().
-    virtual void set_buffer(size_t index, const core::Slice<uint8_t>& buffer) = 0;
+    virtual ROC_NODISCARD status::StatusCode
+    set_buffer(size_t index, const core::Slice<uint8_t>& buffer) = 0;
 
     //! Fill all repair packets in current block.
     //! @pre
     //!  This method may be called only between begin_block() and end_block().
-    virtual void fill_buffers() = 0;
+    virtual ROC_NODISCARD status::StatusCode 
+    fill_buffers() = 0;
 
     //! Finish block.
     //! @remarks
     //!  Cleanups the resources allocated for the block. Should be called after
     //!  all operations for the block.
-    virtual void end_block() = 0;
+    virtual ROC_NODISCARD status::StatusCode
+    end_block() = 0;
 };
 
 } // namespace fec

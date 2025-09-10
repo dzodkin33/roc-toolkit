@@ -52,13 +52,13 @@ public:
     begin_block(size_t sblen, size_t rblen, size_t payload_size);
 
     //! Store packet data for current block.
-    virtual void set_buffer(size_t index, const core::Slice<uint8_t>& buffer);
+    virtual status::StatusCode set_buffer(size_t index, const core::Slice<uint8_t>& buffer);
 
     //! Fill repair packets.
-    virtual void fill_buffers();
+    virtual status::StatusCode fill_buffers();
 
     //! Finish block.
-    virtual void end_block();
+    virtual status::StatusCode end_block();
 
 private:
     bool resize_tabs_(size_t size);

@@ -117,7 +117,8 @@ OpenfecDecoder::begin_block(size_t sblen, size_t rblen, size_t payload_size) {
     return status::StatusOK;
 }
 
-void OpenfecDecoder::set_buffer(size_t index, const core::Slice<uint8_t>& buffer) {
+status::StatusCode
+OpenfecDecoder::set_buffer(size_t index, const core::Slice<uint8_t>& buffer) {
     roc_panic_if(init_status_ != status::StatusOK);
 
     if (index >= sblen_ + rblen_) {
@@ -170,7 +171,8 @@ core::Slice<uint8_t> OpenfecDecoder::repair_buffer(size_t index) {
     return buff_tab_[index];
 }
 
-void OpenfecDecoder::end_block() {
+status::StatusCode 
+OpenfecDecoder::end_block() {
     roc_panic_if(init_status_ != status::StatusOK);
 
     if (of_sess_ != NULL) {

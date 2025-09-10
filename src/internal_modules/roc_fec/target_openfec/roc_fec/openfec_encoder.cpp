@@ -114,33 +114,50 @@ OpenfecEncoder::begin_block(size_t sblen, size_t rblen, size_t payload_size) {
     return status::StatusOK;
 }
 
-void OpenfecEncoder::set_buffer(size_t index, const core::Slice<uint8_t>& buffer) {
+status::StatusCode
+OpenfecEncoder::set_buffer(size_t index, const core::Slice<uint8_t>& buffer) {
     roc_panic_if(init_status_ != status::StatusOK);
 
     if (index >= sblen_ + rblen_) {
-        roc_panic("openfec encoder: can't write more than %lu data buffers",
-                  (unsigned long)sblen_);
+        roc_log(
+            LogError,
+            "openfec encoder: can't write more than %lu data buffers",
+            (unsigned long)sblen_);
+        return status::StatusBadArg;
     }
 
     if (!buffer) {
-        roc_panic("openfec encoder: null buffer");
+        roc_log(
+            LogError,
+            "openfec encoder: null buffer"
+        );
+        return status::StatusBadBuffer;
     }
 
     if (buffer.size() == 0 || buffer.size() != payload_size_) {
-        roc_panic("openfec encoder: invalid payload size: cur=%lu new=%lu",
-                  (unsigned long)payload_size_, (unsigned long)buffer.size());
+        roc_log(
+            LogError,
+            "openfec encoder: invalid payload size: cur=%lu new=%lu",
+            (unsigned long)payload_size_, (unsigned long)buffer.size());
+        return status::StatusBadBuffer;
     }
 
     if ((uintptr_t)buffer.data() % Alignment != 0) {
-        roc_panic("openfec encoder: buffer data should be %d-byte aligned: index=%lu",
-                  (int)Alignment, (unsigned long)index);
+        roc_log(LogError,
+            "openfec encoder: buffer data should be %d-byte aligned: index=%lu",
+            (int)Alignment, (unsigned long)index);
+
+        return status::StatusBadBuffer;
     }
 
     data_tab_[index] = buffer.data();
     buff_tab_[index] = buffer;
+
+    return status::StatusOK;
 }
 
-void OpenfecEncoder::fill_buffers() {
+status::StatusCode
+OpenfecEncoder::fill_buffers() {
     roc_panic_if(init_status_ != status::StatusOK);
 
     for (size_t i = sblen_; i < sblen_ + rblen_; ++i) {
@@ -149,18 +166,25 @@ void OpenfecEncoder::fill_buffers() {
 
         if (OF_STATUS_OK
             != of_build_repair_symbol(of_sess_, &data_tab_[0], (uint32_t)i)) {
-            roc_panic("openfec encoder: of_build_repair_symbol() failed");
+            roc_log(LogError,
+                "openfec encoder: of_build_repair_symbol() failed");
+            return status::StatusBadBuffer;
         }
     }
+
+    status::StatusOK;
 }
 
-void OpenfecEncoder::end_block() {
+status::StatusCode 
+OpenfecEncoder::end_block() {
     roc_panic_if(init_status_ != status::StatusOK);
 
     for (size_t i = 0; i < buff_tab_.size(); ++i) {
         data_tab_[i] = NULL;
         buff_tab_[i] = core::Slice<uint8_t>();
     }
+
+    return status::StatusOK;
 }
 
 bool OpenfecEncoder::resize_tabs_(size_t size) {
